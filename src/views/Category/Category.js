@@ -160,6 +160,13 @@ class Category extends Component {
                         display: 'flex'
                       }}
                     />
+                    <ListItemText
+                      primary={category.sp_name??''}
+                      style={{
+                        alignItems: 'center',
+                        display: 'flex'
+                      }}
+                    />
                     <IconButton edge="end" aria-label="delete" onClick={(e) => {
                       this.setState({
                         editObj: {
@@ -197,6 +204,9 @@ class Category extends Component {
                                         </ListItemAvatar>
                                         <ListItemText
                                           primary={item.name}
+                                        />
+                                        <ListItemText
+                                          primary={item.sp_name??''}
                                         />
                                         <ListItemSecondaryAction>
                                           <IconButton edge="end" aria-label="delete" onClick={(e) => {

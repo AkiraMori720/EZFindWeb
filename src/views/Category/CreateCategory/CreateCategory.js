@@ -28,12 +28,14 @@ class CreateCategory extends Component {
     this.state = {
       loading: false,
       name: '',
+      sp_name: '',
       parent: '',
       file: null,
       image: null,
       error: false,
 
       subcategory: '',
+      sp_subcategory: '',
       subfile: null,
       subimage: null,
     }
@@ -43,24 +45,27 @@ class CreateCategory extends Component {
     if ((this.props.data == null && nextprops.data) || (this.props.data && nextprops.data && this.props.data.key != nextprops.data.key)) {
       this.setState({
         name: nextprops.data.name,
+        sp_name: nextprops.data.sp_name??'',
         parent: nextprops.data.parent,
         image: nextprops.data.image_url,
         file: null,
 
         subcategory: '',
+        sp_subcategory: '',
         subfile: null,
         subimage: null,
       })
     }
+    console.log('data', nextprops.data);
   }
   handleChange = event => {
     this.setState({ [event.target.name]: event.target.value })
   }
   async createCategory() {
-    const { name, parent, file, loading, subcategory, subfile } = this.state
+    const { name, sp_name, parent, file, loading, subcategory, sp_subcategory, subfile } = this.state
     if (loading) return
     this.setState({ error: false })
-    if (name && name.length > 0) {
+    if (name && name.length > 0 && sp_name && sp_name.length > 0) {
       if (file == null) {
         this.setState({ error: 'The category image is required.' })
         return
@@ -86,9 +91,9 @@ class CreateCategory extends Component {
         image_url = await _storage.getDownloadURL()
       }
       var db = firebase.firestore();
-      const collection_path = parent && parent.length > 0 ? `categories/${parent}/subcategories` : `categories`
-      db.collection(collection_path).add({ name, image_url }).then(async (res) => {
-        if (res.id && parent == '' && subcategory && subfile) {
+      const collection_path = parent && parent.length > 0 ? `categories/${parent}/subcategories` : 'categories'
+      db.collection(collection_path).add({ name, sp_name, image_url }).then(async (res) => {
+        if (res.id && parent == '' && subcategory && subfile && sp_subcategory) {
           const filename = Date.now()
           var _storage = firebase.storage().ref(`/categories/${filename}1000`);
 
@@ -96,9 +101,9 @@ class CreateCategory extends Component {
           image_url = await _storage.getDownloadURL()
 
           const sub_collection_path = `categories/${res.id}/subcategories`
-          db.collection(sub_collection_path).add({ name: subcategory, image_url }).then((res) => {
+          db.collection(sub_collection_path).add({ name: subcategory, sp_name: sp_subcategory, image_url }).then((res) => {
             this.setState({
-              loading: false, name: '', parent: '', file: null, image: null, subcategory: '',
+              loading: false, name: '', sp_name: '', parent: '', file: null, image: null, subcategory: '', sp_subcategory: '',
               subfile: null,
               subimage: null,
             })
@@ -108,7 +113,7 @@ class CreateCategory extends Component {
           return
         }
         this.setState({
-          loading: false, name: '', parent: '', file: null, image: null, subcategory: '',
+          loading: false, name: '', sp_name: '', parent: '', file: null, image: null, subcategory: '', sp_subcategory: '',
           subfile: null,
           subimage: null,
         })
@@ -118,11 +123,11 @@ class CreateCategory extends Component {
     } else this.setState({ error: 'The Category Name field is required.' })
   }
   async updateCategory() {
-    const { name, parent, file, loading } = this.state
+    const { name, sp_name, parent, file, loading } = this.state
     const { data } = this.props
     if (loading) return
     this.setState({ error: false })
-    if (name && name.length > 0) {
+    if (name && name.length > 0 && sp_name && sp_name.length > 0) {
       this.setState({ loading: true })
       let image_url = data.image_url
       if (file) {
@@ -134,10 +139,10 @@ class CreateCategory extends Component {
       }
       var db = firebase.firestore();
 
-      const doc = data.parent ? db.collection(`categories/${data.parent}/subcategories`).doc(`${data.key}`) : db.collection(`categories`).doc(`${data.key}`)
-      doc.update({ name, image_url }).then(() => {
+      const doc = data.parent ? db.collection(`categories/${data.parent}/subcategories`).doc(`${data.key}`) : db.collection('categories').doc(`${data.key}`)
+      doc.update({ name, sp_name, image_url }).then(() => {
         this.props.onClear()
-        this.setState({ loading: false, name: '', parent: '', file: null, image: null })
+        this.setState({ loading: false, name: '', sp_name: '', parent: '', file: null, image: null })
       }, () => {
         this.setState({ loading: false })
       });
@@ -153,7 +158,7 @@ class CreateCategory extends Component {
   }
   render() {
     const { classes, className, categories, data } = this.props
-    const { name, parent, image, loading, subcategory, subimage } = this.state
+    const { name, sp_name, parent, image, loading, subcategory, sp_subcategory, subimage } = this.state
     
     return (
       <Card
@@ -165,7 +170,7 @@ class CreateCategory extends Component {
         >
           <CardHeader
             //subheader="The information can be edited"
-            title={data ? "Edit Category" : "Create Category"}
+            title={data ? 'Edit Category' : 'Create Category'}
           />
           <Divider />
           <CardContent>
@@ -175,17 +180,33 @@ class CreateCategory extends Component {
             >
               <Grid
                 item
-                md={6}
+                md={3}
                 xs={12}
               >
                 <TextField
                   fullWidth
-                  label="Category Name"
+                  label="Category Name (English)"
                   margin="dense"
                   name="name"
-                  required
                   onChange={this.handleChange}
+                  required
                   value={name}
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid
+                item
+                md={3}
+                xs={12}
+              >
+                <TextField
+                  fullWidth
+                  label="Category Name (Spanish)"
+                  margin="dense"
+                  name="sp_name"
+                  onChange={this.handleChange}
+                  required
+                  value={sp_name}
                   variant="outlined"
                 />
               </Grid>
@@ -196,12 +217,12 @@ class CreateCategory extends Component {
               >
                 <InputLabel id="demo-simple-select-filled-label">Parent Category</InputLabel>
                 <Select
+                  disabled={data ? true : false}
                   id="demo-simple-select-filled"
                   name="parent"
-                  value={parent}
                   onChange={this.handleChange}
                   style={{ width: '100%' }}
-                  disabled={data ? true : false}
+                  value={parent}
                 >
                   <MenuItem value="">
                     <em>None</em>
@@ -209,7 +230,10 @@ class CreateCategory extends Component {
                   {
                     categories.map(item => {
                       return (
-                        <MenuItem key={item.key} value={item.key}>{item.name}</MenuItem>
+                        <MenuItem
+                          key={item.key}
+                          value={item.key}
+                        >{item.name}</MenuItem>
                       )
                     })
                   }
@@ -227,14 +251,18 @@ class CreateCategory extends Component {
               >
                 <label htmlFor="upload-photo">
                   <input
-                    style={{ display: 'none' }}
                     id="upload-photo"
                     name="upload-photo"
-                    type="file"
                     onChange={this.handleImageAsFile}
+                    style={{ display: 'none' }}
+                    type="file"
                   />
-                  <Button color="secondary" variant="contained" component="span">
-                    {`Select Image`}
+                  <Button
+                    color="secondary"
+                    component="span"
+                    variant="contained"
+                  >
+                    {'Select Image'}
                   </Button>
                 </label>
               </Grid>
@@ -245,7 +273,11 @@ class CreateCategory extends Component {
               >
                 {
                   image &&
-                  <img src={image} alt="image tag" style={{ width: 200, height: 200 }} />
+                  <img
+                    alt="image tag"
+                    src={image}
+                    style={{ width: 200, height: 200 }}
+                  />
                 }
               </Grid>
             </Grid>
@@ -261,7 +293,7 @@ class CreateCategory extends Component {
                 >
                   <Grid
                     item
-                    md={6}
+                    md={3}
                     xs={12}
                   >
                     <TextField
@@ -271,6 +303,21 @@ class CreateCategory extends Component {
                       name="subcategory"
                       onChange={this.handleChange}
                       value={subcategory}
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid
+                    item
+                    md={3}
+                    xs={12}
+                  >
+                    <TextField
+                      fullWidth
+                      label="Subcategory Name(Spanish)"
+                      margin="dense"
+                      name="sp_subcategory"
+                      onChange={this.handleChange}
+                      value={sp_subcategory}
                       variant="outlined"
                     />
                   </Grid>
@@ -286,19 +333,23 @@ class CreateCategory extends Component {
                       <Grid
                         item
                         md={6}
-                        xs={12}
                         style={{ marginTop: 8 }}
+                        xs={12}
                       >
                         <label htmlFor="upload-photo1">
                           <input
-                            style={{ display: 'none' }}
                             id="upload-photo1"
                             name="upload-photo1"
-                            type="file"
                             onChange={this.handleSubImageAsFile}
+                            style={{ display: 'none' }}
+                            type="file"
                           />
-                          <Button color="secondary" variant="contained" component="span">
-                            {`Select Image`}
+                          <Button
+                            color="secondary"
+                            component="span"
+                            variant="contained"
+                          >
+                            {'Select Image'}
                           </Button>
                         </label>
                       </Grid>
@@ -309,7 +360,11 @@ class CreateCategory extends Component {
                       >
                         {
                           subimage &&
-                          <img src={subimage} alt="image tag" style={{ width: 200, height: 200 }} />
+                          <img
+                            alt="image tag"
+                            src={subimage}
+                            style={{ width: 200, height: 200 }}
+                          />
                         }
                       </Grid>
                     </Grid>
@@ -322,7 +377,10 @@ class CreateCategory extends Component {
           <CardActions>
             {
               loading ?
-                <CircularProgress size={20} style={{ margin: 20 }} /> :
+                <CircularProgress
+                  size={20}
+                  style={{ margin: 20 }}
+                /> :
                 <Grid
                   container
                   spacing={3}
@@ -336,7 +394,6 @@ class CreateCategory extends Component {
                       data &&
                       <Button
                         color={'default'}
-                        variant="contained"
                         onClick={() => {
                           this.props.onClear()
                           this.setState({
@@ -347,6 +404,7 @@ class CreateCategory extends Component {
                             image: null
                           })
                         }}
+                        variant="contained"
                       >
                         {
                           'Cancel'
@@ -357,18 +415,18 @@ class CreateCategory extends Component {
                   <Grid
                     item
                     md={6}
-                    xs={12}
                     style={{ display: 'flex', justifyContent: 'flex-end' }}
+                    xs={12}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                       <Button
-                        color={loading ? 'default' : "primary"}
-                        variant="contained"
+                        color={loading ? 'default' : 'primary'}
                         onClick={() => { data ? this.updateCategory() : this.createCategory() }}
                         style={{ alignSelf: 'flex-end' }}
+                        variant="contained"
                       >
                         {
-                          data ? "Update" : 'Create'
+                          data ? 'Update' : 'Create'
                         }
                       </Button>
                       {this.state.error ? <p style={{ color: 'red', marginTop: 10 }}>{this.state.error}</p> : null}
